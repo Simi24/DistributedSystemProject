@@ -18,13 +18,21 @@ public class Player {
     private Coordinate coordinate;
     private static final String BASE_URL = "http://localhost:1337/";
     private final String address = "localhost";
-    private AdminServerModule adminServerModule = new AdminServerModule();
+    private static AdminServerModule adminServerModule;
 
     public static void main(String[] args) {
         Player player = new Player();
+        adminServerModule = new AdminServerModule();
         Thread inputThread = new Thread(player::handleStandardInput);
         inputThread.start();
 
+        //TODO: Start sending HR data to AdminServer
+        adminServerModule.sendHRData();
+
+        //TODO: gRPC presentation to other players sending them their position on the pitch
+
+
+        //TODO: MQTT connection
         //Thread mqttThread = new Thread(player::handleMQTTConnection);
         //mqttThread.start();
 

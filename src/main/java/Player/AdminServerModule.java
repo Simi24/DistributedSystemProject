@@ -12,8 +12,11 @@ public class AdminServerModule {
     private static final String BASE_URL = "http://localhost:1337/";
     private Client client;
 
+    private HRSensorModule hrSensorModule;
+
     public AdminServerModule() {
         this.client = Client.create();
+        hrSensorModule = new HRSensorModule();
     }
 
     public GameInfo addPlayer(Player p) {
@@ -44,7 +47,11 @@ public class AdminServerModule {
         }
     }
 
-    //TODO: methods to send hr value to AdminServer
-
+    public boolean sendHRData() {
+        hrSensorModule.startSensor();
+        hrSensorModule.getBuffer();
+        //TODO: methods to send hr value to AdminServer
+        return true;
+    }
 
 }
