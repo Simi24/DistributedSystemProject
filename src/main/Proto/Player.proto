@@ -1,0 +1,14 @@
+package com.greetings;
+
+message Player {
+  required string id = 1;
+  required string address = 2;
+  required int32 portNumber = 3;
+
+  message Coordinates {
+    required int32 x = 1;
+    required int32 y = 2;
+  }
+
+  required Coordinates coordinates = 4;
+}
