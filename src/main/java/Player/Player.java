@@ -4,52 +4,84 @@ import MQTTHandler.MqttCallbackHandler;
 import Utils.Coordinate;
 import Utils.GameInfo;
 import com.sun.jersey.api.client.ClientResponse;
+import gRPC.GreetingsServiceImp;
+import io.grpc.ServerBuilder;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
 public class Player {
-    private List<AdministratorServer.beans.Player> players = new ArrayList<>();
-    private Coordinate coordinate;
+    private static List<AdministratorServer.beans.Player> players = new ArrayList<>();
+    private static HashMap<AdministratorServer.beans.Player, Coordinate> playerCoordinateMap = new HashMap<>();
+    private static Coordinate coordinate;
     private static final String BASE_URL = "http://localhost:1337/";
     private final String address = "localhost";
     private static AdminServerModule adminServerModule;
+    private String id;
+    private static String port;
+    private static AdministratorServer.beans.Player beanPlayer;
 
-    public static void main(String[] args) {
+    private static Boolean isSeeker = false;
+
+    public static void main(String[] args) throws InterruptedException {
         Player player = new Player();
+        NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
         adminServerModule = new AdminServerModule();
         Thread inputThread = new Thread(player::handleStandardInput);
         inputThread.start();
 
+        // Wait for the inputThread to finish
+        try {
+            inputThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         //TODO: Start sending HR data to AdminServer
         adminServerModule.sendHRData();
 
-        //TODO: gRPC presentation to other players sending them their position on the pitch
+        try {
+            io.grpc.Server server = ServerBuilder.forPort(Integer.parseInt(port)).addService(new GreetingsServiceImp()).build();
+            server.start();
+            System.out.println("Server started!");
+            server.awaitTermination();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
 
+        if(!players.isEmpty()){
+            for (AdministratorServer.beans.Player player1 : players) {
+                playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
+            }
+        }
 
-        //TODO: MQTT connection
-        //Thread mqttThread = new Thread(player::handleMQTTConnection);
-        //mqttThread.start();
+        networkTopologyModule.setPlayerCoordinateMap(playerCoordinateMap);
+
+        networkTopologyModule.sendPlayerCoordinates(beanPlayer, coordinate);
+
+        Thread mqttThread = new Thread(player::handleMQTTConnection);
+        mqttThread.start();
 
     }
 
     private void handleStandardInput() {
         Scanner command = new Scanner(System.in);
         System.out.println("\nInsert your ID: ");
-        String id = command.nextLine();
+        id = command.nextLine();
         System.out.println("Insert your port: ");
-        String port = command.nextLine();
-        AdministratorServer.beans.Player beanPlayer = new AdministratorServer.beans.Player(id, address, Integer.parseInt(port));
+        port = command.nextLine();
+        beanPlayer = new AdministratorServer.beans.Player(id, address, Integer.parseInt(port));
 
         GameInfo responseBody = adminServerModule.addPlayer(beanPlayer);
         players = responseBody.getPlayers();
         coordinate = responseBody.getCoordinate();
-
     }
 
     private void handleMQTTConnection(){

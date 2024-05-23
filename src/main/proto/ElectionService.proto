@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package election;
+
+message ElectionRequest {
+  string playerId = 1;
+}
+
+message ElectionResponse {
+  string message = 1;
+}
+
+service ElectionService {
+  rpc StartElection (ElectionRequest) returns (ElectionResponse);
+  rpc AcknowledgeElection (ElectionRequest) returns (ElectionResponse);
+  rpc DeclareVictory (ElectionRequest) returns (ElectionResponse);
+}
