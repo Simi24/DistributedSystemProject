@@ -47,20 +47,28 @@ public class Player {
         //TODO: Start sending HR data to AdminServer
         adminServerModule.sendHRData();
 
-        try {
-            io.grpc.Server server = ServerBuilder.forPort(Integer.parseInt(port)).addService(new GreetingsServiceImp()).build();
-            server.start();
-            System.out.println("Server started!");
-            server.awaitTermination();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+        Thread serverThread = new Thread(() -> {
+            try {
+                io.grpc.Server server = ServerBuilder.forPort(Integer.parseInt(port)).addService(new GreetingsServiceImp()).build();
+                server.start();
+                System.out.println("Server started for gRPC at port: " + port);
+                server.awaitTermination();
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+
+        serverThread.start();
+
+        System.out.println("qui arrivo?");
 
         if(!players.isEmpty()){
             for (AdministratorServer.beans.Player player1 : players) {
                 playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
             }
         }
+
+        System.out.println("e qui?");
 
         networkTopologyModule.setPlayerCoordinateMap(playerCoordinateMap);
 
