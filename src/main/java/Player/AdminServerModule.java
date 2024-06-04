@@ -1,6 +1,6 @@
 package Player;
 
-import AdministratorServer.beans.Player;
+import AdministratorServer.beans.PlayerBean;
 import Utils.GameInfo;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
@@ -19,7 +19,7 @@ public class AdminServerModule {
         hrSensorModule = new HRSensorModule();
     }
 
-    public GameInfo addPlayer(Player p) {
+    public GameInfo addPlayer(PlayerBean p) {
         String url = "players/add";
         return handleResponse(postRequest(url, p));
     }
@@ -35,7 +35,7 @@ public class AdminServerModule {
         return responseBody;
     }
 
-    public ClientResponse postRequest(String url, Player p){
+    public ClientResponse postRequest(String url, PlayerBean p){
         WebResource webResource = client.resource(BASE_URL + url);
         String input = new Gson().toJson(p);
         System.out.println(input);

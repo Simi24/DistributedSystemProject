@@ -1,11 +1,10 @@
 package Player;
 
+import AdministratorServer.beans.PlayerBean;
 import MQTTHandler.MqttCallbackHandler;
 import Utils.Coordinate;
 import Utils.GameInfo;
-import com.sun.jersey.api.client.ClientResponse;
-import gRPC.GreetingsServiceImp;
-import io.grpc.ServerBuilder;
+import gRPC.gRPCPlayerServer;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -18,21 +17,21 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Player {
-    private static List<AdministratorServer.beans.Player> players = new ArrayList<>();
-    private static HashMap<AdministratorServer.beans.Player, Coordinate> playerCoordinateMap = new HashMap<>();
-    private static Coordinate coordinate;
+    private static List<PlayerBean> players = new ArrayList<>();
+    private final HashMap<PlayerBean, Coordinate> playerCoordinateMap = new HashMap<>();
+    private Coordinate coordinate;
     private static final String BASE_URL = "http://localhost:1337/";
     private final String address = "localhost";
     private static AdminServerModule adminServerModule;
     private String id;
-    private static String port;
-    private static AdministratorServer.beans.Player beanPlayer;
+    private String port;
+    private PlayerBean beanPlayer;
 
     private static Boolean isSeeker = false;
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         Player player = new Player();
-        NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
+
         adminServerModule = new AdminServerModule();
         Thread inputThread = new Thread(player::handleStandardInput);
         inputThread.start();
@@ -44,39 +43,31 @@ public class Player {
             e.printStackTrace();
         }
 
+        // Start the gRPC server
+        gRPCPlayerServer gRPCPlayerServer = new gRPCPlayerServer(Integer.parseInt(player.port));
+        gRPCPlayerServer.start();
+
         //TODO: Start sending HR data to AdminServer
         adminServerModule.sendHRData();
 
-        Thread serverThread = new Thread(() -> {
-            try {
-                io.grpc.Server server = ServerBuilder.forPort(Integer.parseInt(port)).addService(new GreetingsServiceImp()).build();
-                server.start();
-                System.out.println("Server started for gRPC at port: " + port);
-                server.awaitTermination();
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
-        serverThread.start();
-
-        System.out.println("qui arrivo?");
-
-        if(!players.isEmpty()){
-            for (AdministratorServer.beans.Player player1 : players) {
-                playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
-            }
-        }
-
-        System.out.println("e qui?");
-
-        networkTopologyModule.setPlayerCoordinateMap(playerCoordinateMap);
-
-        networkTopologyModule.sendPlayerCoordinates(beanPlayer, coordinate);
+        player.handleNetworkTopologyModule();
 
         Thread mqttThread = new Thread(player::handleMQTTConnection);
         mqttThread.start();
 
+    }
+
+    private void handleNetworkTopologyModule() throws InterruptedException {
+        if(!players.isEmpty()){
+            for (PlayerBean player1 : players) {
+                playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
+            }
+        }
+
+        NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
+        networkTopologyModule.setPlayerCoordinateMap(playerCoordinateMap);
+        networkTopologyModule.setCurrentPlayer(this);
+        networkTopologyModule.sendPlayerCoordinates(beanPlayer, coordinate);
     }
 
     private void handleStandardInput() {
@@ -85,7 +76,7 @@ public class Player {
         id = command.nextLine();
         System.out.println("Insert your port: ");
         port = command.nextLine();
-        beanPlayer = new AdministratorServer.beans.Player(id, address, Integer.parseInt(port));
+        beanPlayer = new PlayerBean(id, address, Integer.parseInt(port));
 
         GameInfo responseBody = adminServerModule.addPlayer(beanPlayer);
         players = responseBody.getPlayers();
@@ -132,4 +123,36 @@ public class Player {
             me.printStackTrace();
         }
     }
+
+    //region getters
+
+    public Coordinate getCoordinate() {
+        return coordinate;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getPort() {
+        return port;
+    }
+
+    public static Boolean getIsSeeker() {
+        return isSeeker;
+    }
+
+    //endregion
+
+    //region setters
+
+    public static void setIsSeeker(Boolean isSeeker) {
+        Player.isSeeker = isSeeker;
+    }
+
+    //endregion
 }

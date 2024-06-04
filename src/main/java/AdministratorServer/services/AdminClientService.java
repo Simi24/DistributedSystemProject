@@ -1,7 +1,7 @@
 package AdministratorServer.services;
 
 import AdministratorServer.beans.HeartRateDataStore;
-import AdministratorServer.beans.Player;
+import AdministratorServer.beans.PlayerBean;
 import AdministratorServer.beans.Players;
 
 import javax.ws.rs.GET;
@@ -19,7 +19,7 @@ public class AdminClientService {
     @GET
     @Produces({"application/json", "application/xml"})
     public Response getPlayers(){
-        List<Player> players = Players.getInstance().getPlayers();
+        List<PlayerBean> players = Players.getInstance().getPlayers();
         return Response.ok(players).build();
     }
 

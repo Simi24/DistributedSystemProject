@@ -1,6 +1,6 @@
 package gRPC;
 
-import AdministratorServer.beans.Player;
+import AdministratorServer.beans.PlayerBean;
 import Utils.Coordinate;
 import Player.NetworkTopologyModule;
 import com.greetings.grpc.GreetingServiceGrpc;
@@ -17,10 +17,10 @@ public class GreetingsServiceImp extends GreetingServiceGrpc.GreetingServiceImpl
         Coordinate receivedCoordinate = new Coordinate(receivedPlayer.getCoordinates().getX(), receivedPlayer.getCoordinates().getY());
 
         // Create a Player object from the received data
-        Player player = new Player(receivedPlayer.getId(), receivedPlayer.getAddress(), receivedPlayer.getPortNumber());
+        PlayerBean player = new PlayerBean(receivedPlayer.getId(), receivedPlayer.getAddress(), receivedPlayer.getPortNumber());
 
         // Update the HashMap with the received player and coordinates
-        NetworkTopologyModule.getInstance().updateNetworkTopology(player, receivedCoordinate);
+        NetworkTopologyModule.getInstance().addNewPlayerToNetworkTopology(player, receivedCoordinate);
 
         GreetingServiceOuterClass.HelloReply response = GreetingServiceOuterClass.HelloReply.newBuilder()
                 .setMessage("Hello " + request.getPlayer())

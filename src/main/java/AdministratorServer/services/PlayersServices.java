@@ -1,6 +1,6 @@
 package AdministratorServer.services;
 
-import AdministratorServer.beans.Player;
+import AdministratorServer.beans.PlayerBean;
 import AdministratorServer.beans.Players;
 import Utils.GameInfo;
 
@@ -18,7 +18,7 @@ public class PlayersServices {
     @POST
     @Consumes({"application/json", "application/xml"})
     @Produces({"application/json", "application/xml"})
-    public Response addPlayer(Player p){
+    public Response addPlayer(PlayerBean p){
         GameInfo gameInfo = Players.getInstance().add(p);
         if(gameInfo != null){
             return Response.ok(gameInfo).build();

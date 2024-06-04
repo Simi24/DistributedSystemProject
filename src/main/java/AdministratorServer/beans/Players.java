@@ -17,19 +17,19 @@ import java.util.List;
 public class Players {
 
     @XmlElement(name="players")
-    private List<Player> players;
+    private List<PlayerBean> players;
 
     private static Players instance;
 
     //region init
     private Players() {
-        players = new ArrayList<Player>();
+        players = new ArrayList<PlayerBean>();
     }
 
     public synchronized static Players getInstance(){
         if(instance==null) {
             instance = new Players();
-            instance.initWithFakePlayers();
+//            instance.initWithFakePlayers();
         }
         return instance;
     }
@@ -38,21 +38,21 @@ public class Players {
     //region REST methods
 
     //Add player and return starting position and list of other players
-    public synchronized @Nullable GameInfo add(Player p){
+    public synchronized @Nullable GameInfo add(PlayerBean p){
         System.out.printf("Adding player %s\n", p.getId());
-        for (Player player: players){
+        for (PlayerBean player: players){
             if(player.getId().equals(p.getId())){
                 return null;
             }
         }
         System.out.printf("Player %s added\n", p.getId());
-        List<Player> returnList = new ArrayList<>(players);
+        List<PlayerBean> returnList = new ArrayList<>(players);
         players.add(p);
         return new GameInfo(getStartingPosition(), returnList);
     }
 
     //The list of the players currently in the game.
-    public synchronized List<Player> getPlayers(){
+    public synchronized List<PlayerBean> getPlayers(){
         return players;
     }
 
@@ -66,10 +66,10 @@ public class Players {
 
     public synchronized void initWithFakePlayers() {
         players = new ArrayList<>(Arrays.asList(
-                new Player("AAA", "localhost", 8080),
-                new Player("BBB", "localhost", 8081),
-                new Player("CCC", "localhost", 8082),
-                new Player("DDD", "localhost", 8083)
+                new PlayerBean("AAA", "localhost", 8080),
+                new PlayerBean("BBB", "localhost", 8081),
+                new PlayerBean("CCC", "localhost", 8082),
+                new PlayerBean("DDD", "localhost", 8083)
         ));
     }
 

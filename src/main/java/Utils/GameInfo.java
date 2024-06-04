@@ -1,18 +1,17 @@
 package Utils;
 
-import AdministratorServer.beans.Player;
+import AdministratorServer.beans.PlayerBean;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 public class GameInfo {
     Coordinate coordinate;
-    List<Player> players;
+    List<PlayerBean> players;
 
     public GameInfo() {
     }
 
-    public GameInfo(Coordinate coordinate, List<Player> players) {
+    public GameInfo(Coordinate coordinate, List<PlayerBean> players) {
         this.coordinate = coordinate;
         this.players = players;
     }
@@ -25,11 +24,11 @@ public class GameInfo {
         this.coordinate = coordinate;
     }
 
-    public List<Player> getPlayers() {
+    public List<PlayerBean> getPlayers() {
         return players;
     }
 
-    public void setPlayers(List<Player> players) {
+    public void setPlayers(List<PlayerBean> players) {
         this.players = players;
     }
 }

@@ -3,7 +3,7 @@ package AdministratorServer.beans;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class Player {
+public class PlayerBean {
     //Player data
     private String id;
 
@@ -11,9 +11,9 @@ public class Player {
 
     private int portNumber;
 
-    public Player(){}
+    public PlayerBean(){}
 
-    public Player(String id, String address, int portNumber) {
+    public PlayerBean(String id, String address, int portNumber) {
         this.id = id;
         this.address = address;
         this.portNumber = portNumber;
