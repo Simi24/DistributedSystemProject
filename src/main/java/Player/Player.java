@@ -53,13 +53,17 @@ public class Player {
         Thread mqttThread = new Thread(player::handleMQTTConnection);
         mqttThread.start();
 
+        if(!isSeeker){
+            player.handleAccessToBase();
+        }
+
     }
 
     private void handleNetworkTopologyModule() throws InterruptedException {
         playerCoordinateMap.put(beanPlayer, coordinate);
         if(!players.isEmpty()){
             for (PlayerBean player1 : players) {
-                playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
+                playerCoordinateMap.put(player1, new Coordinate(0, 0));
             }
         }
 
@@ -148,6 +152,10 @@ public class Player {
             System.out.println("excep " + me);
             me.printStackTrace();
         }
+    }
+
+    private void handleAccessToBase() throws InterruptedException {
+        NetworkTopologyModule.getInstance().askForAccessToBase(beanPlayer);
     }
 
     //region getters

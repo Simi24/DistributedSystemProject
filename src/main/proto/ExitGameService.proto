@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package exitGame;
+
+enum ExitGameReason {
+    SAVE = 0;
+    TAG = 1;
+}
+
+message ExitGameRequest {
+    string id = 1;
+    ExitGameReason reason = 2;
+}
+
+message ExitGameResponse {
+    string message = 2;
+}
