@@ -13,7 +13,10 @@ public class gRPCPlayerServer {
     
     public void start() throws IOException {
         // Start the gRPC server
-        io.grpc.Server server = ServerBuilder.forPort(port).addService(new GreetingsServiceImp()).build();
+        io.grpc.Server server = ServerBuilder.forPort(port)
+                .addService(new GreetingsServiceImp())
+                .addService(new ElectionServiceImp())
+                .build();
         server.start();
         System.out.println("Server started for gRPC at port: " + port);
     }

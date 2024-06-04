@@ -33,11 +33,7 @@ public class AdministrationClient {
     }
 
     public void publishGameStatus(boolean gameStarted) throws JSONException, MqttException {
-        JSONObject payloadJson = new JSONObject();
-        payloadJson.put("message", gameStarted ? "Game started" : "Game stopped");
-        payloadJson.put("gameStarted", gameStarted);
-
-        publishMessage("WatchOut/status", payloadJson.toString());
+        publishMessage("WatchOut/status", gameStarted ? "start" : "stop");
     }
 
     public void publishCustomMessage(String customMessage) throws MqttException {
@@ -76,9 +72,9 @@ public class AdministrationClient {
             AdministrationClient adminClient = new AdministrationClient();
 
             //Call these methods to publish messages
-            adminClient.publishGameStatus(true);
-            adminClient.publishCustomMessage("This is a custom message to all players.");
-            adminClient.disconnect();
+            //adminClient.publishGameStatus(true);
+            //adminClient.publishCustomMessage("This is a custom message to all players.");
+            //adminClient.disconnect();
 
             Scanner scanner = new Scanner(System.in);
             Client client = Client.create();
@@ -88,7 +84,8 @@ public class AdministrationClient {
                 System.out.println("1. Get Players");
                 System.out.println("2. Get Player Average Heart Rate Between Timestamps");
                 System.out.println("3. Get Average Heart Rate Between Timestamps");
-                System.out.println("4. Exit");
+                System.out.println("4. Start Game");
+                System.out.println("5. Exit");
                 System.out.print("Enter your choice: ");
 
                 int choice = scanner.nextInt();
@@ -119,10 +116,14 @@ public class AdministrationClient {
                         System.out.println(responseBody);
                         break;
                     case 4:
-                        System.out.println("Exiting...");
-                        client.destroy();
-                        flag = false;
+                        adminClient.publishGameStatus(true);
                         break;
+
+                        case 5:
+                            System.out.println("Exiting...");
+                            client.destroy();
+                            flag = false;
+                            break;
                     default:
                         System.out.println("Invalid choice. Please select again.");
                 }

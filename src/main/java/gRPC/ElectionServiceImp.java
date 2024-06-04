@@ -1,6 +1,7 @@
 package gRPC;
 
 import Player.NetworkTopologyModule;
+import Player.Player;
 import Utils.Coordinate;
 import election.ElectionServiceGrpc;
 import election.ElectionServiceOuterClass;
@@ -10,6 +11,8 @@ public class ElectionServiceImp extends ElectionServiceGrpc.ElectionServiceImplB
 
     @Override
     public void startElection(ElectionServiceOuterClass.ElectionRequest request, StreamObserver<ElectionServiceOuterClass.ElectionResponse> responseObserver) {
+        System.out.println("Received a new election request " + request.getPlayerId() + " " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
+
         String playerId = request.getPlayerId();
 
         NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
@@ -32,6 +35,13 @@ public class ElectionServiceImp extends ElectionServiceGrpc.ElectionServiceImplB
 
     @Override
     public void declareVictory(ElectionServiceOuterClass.ElectionRequest request, StreamObserver<ElectionServiceOuterClass.ElectionResponse> responseObserver) {
-        super.declareVictory(request, responseObserver);
+        System.out.println("Received a new election victory " + request.getPlayerId() + " " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
+        NetworkTopologyModule.getInstance().setSeeker(request.getPlayerId());
+
+        ElectionServiceOuterClass.ElectionResponse response = ElectionServiceOuterClass.ElectionResponse.newBuilder()
+                .setMessage("Got it! You are the new seeker!")
+                .build();
+
+        responseObserver.onNext(response);
     }
 }

@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -60,8 +61,22 @@ public class Players {
 
     //region utils
     private Coordinate getStartingPosition(){
-        //TODO: implement the starting position
-        return new Coordinate(0, 0);
+        Random rand = new Random();
+        int edge = rand.nextInt(4);
+        int position = rand.nextInt(10);
+
+        switch (edge) {
+            case 0: // Top edge
+                return new Coordinate(0, position);
+            case 1: // Right edge
+                return new Coordinate(position, 9);
+            case 2: // Bottom edge
+                return new Coordinate(9, position);
+            case 3: // Left edge
+                return new Coordinate(position, 0);
+            default:
+                return null; // This should never happen
+        }
     }
 
     public synchronized void initWithFakePlayers() {

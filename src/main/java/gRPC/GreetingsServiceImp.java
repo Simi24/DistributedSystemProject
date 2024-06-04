@@ -11,7 +11,7 @@ public class GreetingsServiceImp extends GreetingServiceGrpc.GreetingServiceImpl
 
     @Override
     public void sayHello(GreetingServiceOuterClass.HelloRequest request, StreamObserver<GreetingServiceOuterClass.HelloReply> responseObserver) {
-        System.out.println(request);
+        System.out.println("Received a new player " + request.getPlayer().getId());
 
         GreetingServiceOuterClass.Player receivedPlayer = request.getPlayer();
         Coordinate receivedCoordinate = new Coordinate(receivedPlayer.getCoordinates().getX(), receivedPlayer.getCoordinates().getY());
@@ -23,7 +23,7 @@ public class GreetingsServiceImp extends GreetingServiceGrpc.GreetingServiceImpl
         NetworkTopologyModule.getInstance().addNewPlayerToNetworkTopology(player, receivedCoordinate);
 
         GreetingServiceOuterClass.HelloReply response = GreetingServiceOuterClass.HelloReply.newBuilder()
-                .setMessage("Hello " + request.getPlayer())
+                .setMessage("Hello my friend")
                 .build();
 
         responseObserver.onNext(response);

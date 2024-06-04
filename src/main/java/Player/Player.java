@@ -1,16 +1,14 @@
 package Player;
 
 import AdministratorServer.beans.PlayerBean;
-import MQTTHandler.MqttCallbackHandler;
 import Utils.Coordinate;
 import Utils.GameInfo;
 import gRPC.gRPCPlayerServer;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +56,7 @@ public class Player {
     }
 
     private void handleNetworkTopologyModule() throws InterruptedException {
+        playerCoordinateMap.put(beanPlayer, coordinate);
         if(!players.isEmpty()){
             for (PlayerBean player1 : players) {
                 playerCoordinateMap.put(player1, new Coordinate(0, 0)); // replace with actual coordinates
@@ -101,8 +100,35 @@ public class Player {
             System.out.println(clientId + " Connected - Thread PID: " + Thread.currentThread().getId());
 
             // Set callback
-            MqttCallbackHandler callbackHandler = new MqttCallbackHandler(clientId);
-            client.setCallback(callbackHandler);
+            client.setCallback(new MqttCallback() {
+                @Override
+                public void connectionLost(Throwable throwable) {
+                    System.out.println(clientId + " Connection lost! Cause: " + throwable.getMessage() + " - Thread PID: " + Thread.currentThread().getId());
+                }
+
+                @Override
+                public void messageArrived(String s, MqttMessage message) throws Exception {
+                    String time = new Timestamp(System.currentTimeMillis()).toString();
+                    String receivedMessage = new String(message.getPayload());
+
+                    if(receivedMessage.equals("start")){
+                        NetworkTopologyModule.getInstance().startElection(beanPlayer, coordinate);
+                    }
+
+                    System.out.println(clientId + " Received a Message! - Callback - Thread PID: " + Thread.currentThread().getId() +
+                            "\n\tTime:    " + time +
+                            "\n\tTopic:   " + topic +
+                            "\n\tMessage: " + receivedMessage +
+                            "\n\tQoS:     " + message.getQos() + "\n");
+
+                    System.out.println("\n ***  Press a random key to exit *** \n");
+                }
+
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
+
+                }
+            });
 
             // Subscribe
             System.out.println(clientId + " Subscribing ... - Thread PID: " + Thread.currentThread().getId());
