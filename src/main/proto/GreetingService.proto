@@ -14,12 +14,25 @@ message Player {
   Coordinates coordinates = 4;
 }
 
+enum GameStatus {
+  WAITING = 0;
+  ELECTION = 1;
+  BASE_ACCESS = 2;
+}
+
+enum Role {
+  SEEKER = 0;
+  HIDER = 1;
+}
+
 message HelloRequest {
   Player player = 1;
 }
 
 message HelloReply {
-  string message = 1;
+  GameStatus gameStatus = 1;
+  Role role = 2;
+  string id = 3;
 }
 
 service GreetingService {

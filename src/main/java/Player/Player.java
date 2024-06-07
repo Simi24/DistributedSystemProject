@@ -24,6 +24,7 @@ public class Player {
     private String id;
     private String port;
     private PlayerBean beanPlayer;
+    private final NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
 
     private static Boolean isSeeker = false;
 
@@ -67,7 +68,6 @@ public class Player {
             }
         }
 
-        NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
         networkTopologyModule.setPlayerCoordinateMap(playerCoordinateMap);
         networkTopologyModule.setCurrentPlayer(this);
         networkTopologyModule.sendPlayerCoordinates(beanPlayer, coordinate);
@@ -84,6 +84,7 @@ public class Player {
         GameInfo responseBody = adminServerModule.addPlayer(beanPlayer);
         players = responseBody.getPlayers();
         coordinate = responseBody.getCoordinate();
+        System.out.println("My DISTANCE from the base is: " + networkTopologyModule.calculateDistanceToBase(coordinate));
     }
 
     private void handleMQTTConnection(){
@@ -117,7 +118,7 @@ public class Player {
                     String receivedMessage = new String(message.getPayload());
 
                     if(receivedMessage.equals("start")){
-                        NetworkTopologyModule.getInstance().startElection(beanPlayer, coordinate);
+                        networkTopologyModule.startElection(beanPlayer, coordinate);
                     }
 
                     System.out.println(clientId + " Received a Message! - Callback - Thread PID: " + Thread.currentThread().getId() +
@@ -160,7 +161,7 @@ public class Player {
             try {
                 lock.wait();
                 if(!isSeeker){
-                    NetworkTopologyModule.getInstance().askForAccessToBase(beanPlayer);
+                    networkTopologyModule.askForAccessToBase(beanPlayer);
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();

@@ -14,6 +14,7 @@ message ElectionRequest {
 
 message ElectionResponse {
   string message = 1;
+  string id = 2;
 }
 
 service ElectionService {

@@ -22,8 +22,12 @@ public class GreetingsServiceImp extends GreetingServiceGrpc.GreetingServiceImpl
         // Update the HashMap with the received player and coordinates
         NetworkTopologyModule.getInstance().addNewPlayerToNetworkTopology(player, receivedCoordinate);
 
+        boolean isSeeker = NetworkTopologyModule.getInstance().getCurrentPlayer().getIsSeeker();
+
         GreetingServiceOuterClass.HelloReply response = GreetingServiceOuterClass.HelloReply.newBuilder()
-                .setMessage("Hello my friend")
+                .setGameStatus(GreetingServiceOuterClass.GameStatus.forNumber(NetworkTopologyModule.getInstance().getGameStatus()))
+                .setRole(GreetingServiceOuterClass.Role.forNumber(isSeeker ? 0 : 1))
+                .setId(NetworkTopologyModule.getInstance().getCurrentPlayer().getId())
                 .build();
 
         responseObserver.onNext(response);

@@ -40,9 +40,14 @@ public class AdministrationClient {
         publishMessage("WatchOut/customMessage", customMessage);
     }
 
+    public void publishMessageToCleanRetained() throws MqttException {
+        publishMessage("WatchOut/status", "");
+    }
+
     private void publishMessage(String topic, String payload) throws MqttException {
-        MqttMessage message = new MqttMessage(payload.getBytes());
+        MqttMessage message = payload.isEmpty() ? new MqttMessage(new byte[0]) : new MqttMessage(payload.getBytes());
         message.setQos(qos);
+        message.setRetained(payload.equals("start") || payload.isEmpty());
         System.out.println(clientId + " Publishing message: " + payload + " ...");
         client.publish(topic, message);
         System.out.println(clientId + " Message published");
@@ -75,6 +80,7 @@ public class AdministrationClient {
             //adminClient.publishGameStatus(true);
             //adminClient.publishCustomMessage("This is a custom message to all players.");
             //adminClient.disconnect();
+            adminClient.publishMessageToCleanRetained();
 
             Scanner scanner = new Scanner(System.in);
             Client client = Client.create();

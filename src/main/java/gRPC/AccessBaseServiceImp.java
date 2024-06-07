@@ -27,6 +27,7 @@ public class AccessBaseServiceImp extends AccessServiceGrpc.AccessServiceImplBas
                 .build();
 
         responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override
@@ -40,5 +41,6 @@ public class AccessBaseServiceImp extends AccessServiceGrpc.AccessServiceImplBas
                 .build();
 
         responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 }
