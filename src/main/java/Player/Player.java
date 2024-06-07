@@ -27,6 +27,8 @@ public class Player {
 
     private static Boolean isSeeker = false;
 
+    public final Object lock = new Object();
+
     public static void main(String[] args) throws InterruptedException, IOException {
         Player player = new Player();
 
@@ -53,9 +55,7 @@ public class Player {
         Thread mqttThread = new Thread(player::handleMQTTConnection);
         mqttThread.start();
 
-        if(!isSeeker){
-            player.handleAccessToBase();
-        }
+        player.handleAccessToBase();
 
     }
 
@@ -108,6 +108,7 @@ public class Player {
                 @Override
                 public void connectionLost(Throwable throwable) {
                     System.out.println(clientId + " Connection lost! Cause: " + throwable.getMessage() + " - Thread PID: " + Thread.currentThread().getId());
+                    throwable.printStackTrace();
                 }
 
                 @Override
@@ -155,7 +156,17 @@ public class Player {
     }
 
     private void handleAccessToBase() throws InterruptedException {
-        NetworkTopologyModule.getInstance().askForAccessToBase(beanPlayer);
+        synchronized (lock) {
+            try {
+                lock.wait();
+                if(!isSeeker){
+                    NetworkTopologyModule.getInstance().askForAccessToBase(beanPlayer);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     //region getters

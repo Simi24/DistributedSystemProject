@@ -11,7 +11,7 @@ public class ElectionServiceImp extends ElectionServiceGrpc.ElectionServiceImplB
 
     @Override
     public void startElection(ElectionServiceOuterClass.ElectionRequest request, StreamObserver<ElectionServiceOuterClass.ElectionResponse> responseObserver) {
-        System.out.println("Received a new election request " + request.getPlayerId() + " " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
+        System.out.println("Received a new election request " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
 
         String playerId = request.getPlayerId();
 
@@ -21,8 +21,12 @@ public class ElectionServiceImp extends ElectionServiceGrpc.ElectionServiceImplB
 
         networkTopologyModule.updatePlayerCoordinate(playerId, receivedCoordinate);
 
+        boolean isCloser = networkTopologyModule.playerIsCloserThenCurrentPlayer(playerId);
+
+        System.out.println("Sending election response " + isCloser);
+
         ElectionServiceOuterClass.ElectionResponse response = ElectionServiceOuterClass.ElectionResponse.newBuilder()
-                .setMessage(networkTopologyModule.playerIsCloserThenCurrentPlayer(playerId).toString())
+                .setMessage(String.valueOf(isCloser))
                 .build();
 
         responseObserver.onNext(response);
@@ -35,12 +39,17 @@ public class ElectionServiceImp extends ElectionServiceGrpc.ElectionServiceImplB
 
     @Override
     public void declareVictory(ElectionServiceOuterClass.ElectionRequest request, StreamObserver<ElectionServiceOuterClass.ElectionResponse> responseObserver) {
-        System.out.println("Received a new election victory " + request.getPlayerId() + " " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
+        System.out.println("Received a new election victory from " + request.getPlayerId() + " " + request.getCoordinates().getX() + " " + request.getCoordinates().getY() + " ");
         NetworkTopologyModule.getInstance().setSeeker(request.getPlayerId());
+        NetworkTopologyModule.getInstance().removeSeekerFromNetworkTopology();
 
         ElectionServiceOuterClass.ElectionResponse response = ElectionServiceOuterClass.ElectionResponse.newBuilder()
                 .setMessage("Got it! You are the new seeker!")
                 .build();
+
+        synchronized (NetworkTopologyModule.getInstance().getCurrentPlayer().lock) {
+            NetworkTopologyModule.getInstance().getCurrentPlayer().lock.notify();
+        }
 
         responseObserver.onNext(response);
     }

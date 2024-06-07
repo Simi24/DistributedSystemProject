@@ -14,10 +14,12 @@ public class AccessBaseServiceImp extends AccessServiceGrpc.AccessServiceImplBas
         long timeStampRequested = request.getTimestamp();
 
         boolean granted = !NetworkTopologyModule.getInstance().isMyTimeStampMinor(timeStampRequested);
+        System.out.println("Access granted: " + granted);
 
         //If the request is not granted, add the player to the list of players to give access when player leaves the base
         if(!granted && NetworkTopologyModule.getInstance().getRequestTimeStamp() != 0) {
             NetworkTopologyModule.getInstance().playersListToGiveAccess.add(request.getId());
+            System.out.println(NetworkTopologyModule.getInstance().playersListToGiveAccess);
         }
 
         AccessBaseService.AccessResponse response = AccessBaseService.AccessResponse.newBuilder()

@@ -15,3 +15,7 @@ message ExitGameRequest {
 message ExitGameResponse {
     string message = 2;
 }
+
+service ExitGameService {
+    rpc ExitGame(ExitGameRequest) returns (ExitGameResponse);
+}

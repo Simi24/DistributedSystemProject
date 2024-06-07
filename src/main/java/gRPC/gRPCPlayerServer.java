@@ -17,6 +17,7 @@ public class gRPCPlayerServer {
                 .addService(new GreetingsServiceImp())
                 .addService(new ElectionServiceImp())
                 .addService(new AccessBaseServiceImp())
+                .addService(new ExitGameServiceImp())
                 .build();
         server.start();
         System.out.println("Server started for gRPC at port: " + port);
