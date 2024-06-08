@@ -16,6 +16,8 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import reachBase.AccessBaseService;
 import reachBase.AccessServiceGrpc;
+import tagPlayer.TagPlayerServiceGrpc;
+import tagPlayer.TagPlayerServiceOuterClass;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +43,8 @@ public class NetworkTopologyModule {
     private static int grantCounter = 0;
 
     private boolean amIInTheBase = false;
+
+    private boolean iBeenTagged = false;
 
     private static GameStatus gameStatus = GameStatus.WAITING;
 
@@ -102,6 +106,18 @@ public class NetworkTopologyModule {
 
     public static void setGameStatus(int gameStatus) {
         NetworkTopologyModule.gameStatus = GameStatus.values()[gameStatus];
+    }
+
+    public boolean getAmIInTheBase() {
+        return amIInTheBase;
+    }
+
+    public void setiBeenTagged(boolean iBeenTagged){
+        this.iBeenTagged = iBeenTagged;
+    }
+
+    public boolean getiBeenTagged(){
+        return iBeenTagged;
     }
 
     //endregion
@@ -180,6 +196,7 @@ public class NetworkTopologyModule {
                     declareVictoryCall(player, currentCoordinate);
                 }
             }
+            startSeeker();
         }
 
     }
@@ -192,10 +209,20 @@ public class NetworkTopologyModule {
         System.out.println("PlayerCoordinateMap size after election process: " + playersMapWithoutSeeker.size());
 
         for (PlayerBean player : playersMapWithoutSeeker.keySet()) {
+//            try {
+//                Thread.sleep(5000);
+//            } catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//                System.out.println("Thread was interrupted, failed to complete operation");
+//            }
             if (!Objects.equals(player.getId(), currentPlayer.getId())) {
                 // Ask access to the base
-                System.out.println("Player " + currentPlayer.getId() + " is asking for access to the base at player " + player.getId() + " at timestamp " + requestTimeStamp + " ");
-                asynchronousAskAccessToBaseCall(player);
+                    if(!iBeenTagged){
+                        System.out.println("Player " + currentPlayer.getId() + " is asking for access to the base at player " + player.getId() + " at timestamp " + requestTimeStamp + " ");
+                        asynchronousAskAccessToBaseCall(player);
+                    } else {
+                        break;
+                    }
             }
         }
 
@@ -211,7 +238,7 @@ public class NetworkTopologyModule {
             }
 
             System.out.println("Access granted, I can enter the base");
-            System.out.println("I AM IN THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis() + " ");
+            System.out.println("---------------- I AM IN THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis() + " ");
             amIInTheBase = true;
             try {
                 Thread.sleep(10000);
@@ -219,7 +246,7 @@ public class NetworkTopologyModule {
                 Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
-            System.out.println("I AM LEAVING THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis());
+            System.out.println("---------------- I AM LEAVING THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis());
             amIInTheBase = false;
             setRequestTimeStamp(0);
             try {
@@ -229,7 +256,7 @@ public class NetworkTopologyModule {
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
             try {
-                leaveGame();
+                leaveGame(ExitGameReason.SAVE);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
                 System.out.println("Thread was interrupted, failed to complete operation");
@@ -257,11 +284,9 @@ public class NetworkTopologyModule {
                 }
             }
 
-            List<String> playersListCopy = new ArrayList<>(playersListToGiveAccess);
+            System.out.println("Players list to give access: " + playersListToGiveAccess);
 
-            System.out.println("Players list to give access: " + playersListCopy);
-
-            for (String playerId : playersListCopy) {
+            for (String playerId : playersListToGiveAccess) {
                 for (PlayerBean player : playerCoordinateMap.keySet()) {
                     if (player.getId().equals(playerId)) {
                         System.out.println("Giving access to player " + player.getId());
@@ -272,7 +297,7 @@ public class NetworkTopologyModule {
         }
     }
 
-    public void leaveGame() throws InterruptedException {
+    public void leaveGame(ExitGameReason reason) throws InterruptedException {
         synchronized (updatingLock) {
             while (isUpdating) {
                 try {
@@ -287,7 +312,7 @@ public class NetworkTopologyModule {
             for (PlayerBean player : playerCoordinateMap.keySet()) {
                 if (!Objects.equals(player.getId(), currentPlayer.getId())) {
                     // Ask access to the base
-                    asynchronousLeaveGameCall(player, ExitGameReason.SAVE);
+                    asynchronousLeaveGameCall(player, reason);
                 }
             }
             isUpdating = false;
@@ -478,11 +503,16 @@ public class NetworkTopologyModule {
                 if(accessResponse.getGranted()) {
                     try {
                         synchronized (lock) {
+                            System.out.println(NetworkTopologyModule.getInstance().iBeenTagged + " I have been tagged");
+                            if(NetworkTopologyModule.getInstance().iBeenTagged) {
+                                lock.wait();
+                            }
                             // Increment the grant counter (number of players that granted access to the base
                             grantCounter++;
                             System.out.println("Grant counter incremented, the new value is: " + grantCounter);
                             lock.notify();
                         }
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -492,6 +522,7 @@ public class NetworkTopologyModule {
             @Override
             public void onError(Throwable throwable) {
                 System.out.println("Error! " + throwable.getMessage());
+                System.out.println("The call was cancelled. SONO NEL ASK ACCESS TO BASE __________________");
                 throwable.printStackTrace();
             }
 
@@ -516,12 +547,17 @@ public class NetworkTopologyModule {
             @Override
             public void onNext(AccessBaseService.Thanks thanks) {
                 System.out.println("thanks response " + thanks.getMessage() + "");
-                playersListToGiveAccess.remove(player.getId());
+                synchronized (getInstance().updatingLock) {
+                    getInstance().isUpdating = true;
+                    playersListToGiveAccess.remove(player.getId());
+                    getInstance().isUpdating = false;
+                }
             }
 
             @Override
             public void onError(Throwable throwable) {
                 System.out.println("Error! " + throwable.getMessage());
+                System.out.println("The call was cancelled. SONO NEL GIVE GRANT __________________");
                 throwable.printStackTrace();
             }
 
@@ -555,11 +591,48 @@ public class NetworkTopologyModule {
             @Override
             public void onNext(ExitGameServiceOuterClass.ExitGameResponse exitGameResponse) {
                 System.out.println("Exit game response: " + exitGameResponse.getMessage() + "");
+
             }
 
             @Override
             public void onError(Throwable throwable) {
                 System.out.println("Error! " + throwable.getMessage());
+                System.out.println("The call was cancelled. SONO NEL EXIT GAME __________________");
+                throwable.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                channel.shutdown();
+            }
+        });
+
+        //you need this. otherwise the method will terminate before that answers from the server are received
+        channel.awaitTermination(50, TimeUnit.SECONDS);
+    }
+
+    public static void asynchronousTagPlayerCall(PlayerBean player) throws InterruptedException {
+        final ManagedChannel channel = ManagedChannelBuilder.forTarget(player.getAddress() + ":" + player.getPortNumber()).usePlaintext().build();
+        TagPlayerServiceGrpc.TagPlayerServiceStub stub = TagPlayerServiceGrpc.newStub(channel);
+
+        TagPlayerServiceOuterClass.TagPlayerRequest request = TagPlayerServiceOuterClass.TagPlayerRequest.newBuilder()
+                .setMessage("You have been tagged by the seeker")
+                .build();
+
+        stub.tagPlayer(request, new StreamObserver<TagPlayerServiceOuterClass.TagPlayerResponse>() {
+            @Override
+            public void onNext(TagPlayerServiceOuterClass.TagPlayerResponse tagPlayerResponse) {
+                System.out.println("Tag player response: " + tagPlayerResponse.getSuccess() + "");
+                NetworkTopologyModule.getInstance().removePlayerFromNetworkTopology(player.getId());
+                if (!tagPlayerResponse.getSuccess()) {
+                    NetworkTopologyModule.getInstance().moveTowardsClosestPlayer();
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                System.out.println("Error! " + throwable.getMessage());
+                System.out.println("The call was cancelled. SONO NEL TAG PLAYER __________________");
                 throwable.printStackTrace();
             }
 
@@ -607,6 +680,25 @@ public class NetworkTopologyModule {
     }
 
     public void removePlayerFromNetworkTopology(String playerId) {
+        synchronized (playerCoordinateMap) {
+
+            isUpdating = true;
+            Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playerCoordinateMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
+                if (entry.getKey().getId().equals(playerId)) {
+                    iterator.remove();
+                    break;
+                }
+            }
+
+            if(playerCoordinateMap.size() == 1){
+                System.out.println("---------------- GAME IS OVER ----------------");
+            }
+        }
+    }
+
+    public void removePlayerFromListOfPlayerToGiveGrant(String playerId) {
         synchronized (updatingLock) {
             while (isUpdating) {
                 try {
@@ -618,17 +710,11 @@ public class NetworkTopologyModule {
             }
 
             isUpdating = true;
-            Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playerCoordinateMap.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
-                if (entry.getKey().getId().equals(playerId)) {
-                    iterator.remove();
-                    break;
-                }
-            }
+            playersListToGiveAccess.remove(playerId);
             isUpdating = false;
             updatingLock.notifyAll();
         }
+        playersListToGiveAccess.remove(playerId);;
     }
 
     public void incrementGrantCounter(){
@@ -669,6 +755,13 @@ public class NetworkTopologyModule {
 
         int dx = playerX - playerCoordinate.getX();
         int dy = playerY - playerCoordinate.getY();
+
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    public double calculateDistanceBetweenTwoPlayers(Coordinate player1Coordinate, Coordinate player2Coordinate) {
+        int dx = player1Coordinate.getX() - player2Coordinate.getX();
+        int dy = player1Coordinate.getY() - player2Coordinate.getY();
 
         return Math.sqrt(dx * dx + dy * dy);
     }
@@ -729,7 +822,7 @@ public class NetworkTopologyModule {
 
     //region Enums
 
-    enum ExitGameReason {
+    public enum ExitGameReason {
         SAVE,
         TAG
     }
@@ -737,6 +830,66 @@ public class NetworkTopologyModule {
     enum GameStatus {
         WAITING,
         ELECTION, BASE_ACCESS,
+    }
+
+    //endregion
+
+    //region Seeker
+
+    public void startSeeker(){
+        System.out.println("Starting seeker");
+        moveTowardsClosestPlayer();
+    }
+
+    public void moveTowardsClosestPlayer() {
+        PlayerBean closestPlayer = findClosestPlayer();
+        if (closestPlayer != null) {
+            // Calculate the distance to the closest player
+            double distance = calculateDistanceBetweenTwoPlayers(currentPlayer.getCoordinate(), playerCoordinateMap.get(closestPlayer));
+
+            // Calculate the time it takes for the seeker to reach the closest player
+            double speed = 2.0;
+            long time = (long) (distance / speed * 1000);
+
+            System.out.println("Moving towards player " + closestPlayer.getId() + " with distance " + distance + " and time " + time);
+
+            try {
+                // Simulate the movement of the seeker
+                Thread.sleep(time);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("Thread was interrupted, failed to complete operation");
+            }
+
+            Coordinate closestPlayerCoordinate = playerCoordinateMap.get(closestPlayer);
+            currentPlayer.setCoordinate(closestPlayerCoordinate);
+
+            try {
+                asynchronousTagPlayerCall(closestPlayer);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private PlayerBean findClosestPlayer() {
+        PlayerBean closestPlayer = null;
+        double closestDistance = Double.MAX_VALUE;
+        Coordinate seekerCoordinate = currentPlayer.getCoordinate();
+
+        synchronized (playerCoordinateMap) {
+            for (PlayerBean player : playerCoordinateMap.keySet()) {
+                if (!Objects.equals(player.getId(), currentPlayer.getId())) {
+                    double distance = calculateDistanceBetweenTwoPlayers(seekerCoordinate, playerCoordinateMap.get(player));
+                    if (distance < closestDistance) {
+                        closestPlayer = player;
+                        closestDistance = distance;
+                    }
+                }
+            }
+        }
+
+        return closestPlayer;
     }
 
     //endregion

@@ -13,6 +13,8 @@ public class AccessBaseServiceImp extends AccessServiceGrpc.AccessServiceImplBas
 
         long timeStampRequested = request.getTimestamp();
 
+        boolean iveBeenTagged = NetworkTopologyModule.getInstance().getiBeenTagged();
+
         boolean granted = !NetworkTopologyModule.getInstance().isMyTimeStampMinor(timeStampRequested);
         System.out.println("Access granted: " + granted);
 
@@ -23,7 +25,7 @@ public class AccessBaseServiceImp extends AccessServiceGrpc.AccessServiceImplBas
         }
 
         AccessBaseService.AccessResponse response = AccessBaseService.AccessResponse.newBuilder()
-                .setGranted(granted)
+                .setGranted(iveBeenTagged || granted)
                 .build();
 
         responseObserver.onNext(response);

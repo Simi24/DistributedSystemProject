@@ -11,6 +11,8 @@ public class ExitGameServiceImp extends  ExitGameServiceGrpc.ExitGameServiceImpl
     public void exitGame(ExitGameServiceOuterClass.ExitGameRequest request, StreamObserver<ExitGameServiceOuterClass.ExitGameResponse> responseObserver) {
         System.out.println("Received a request to exit game from " + request.getId() + " because it's: " + request.getReason());
 
+        //If player is in list of players to give grant, remove it from the list
+        NetworkTopologyModule.getInstance().removePlayerFromListOfPlayerToGiveGrant(request.getId());
         NetworkTopologyModule.getInstance().removePlayerFromNetworkTopology(request.getId());
 
         ExitGameServiceOuterClass.ExitGameResponse response = ExitGameServiceOuterClass.ExitGameResponse
@@ -19,5 +21,6 @@ public class ExitGameServiceImp extends  ExitGameServiceGrpc.ExitGameServiceImpl
                 .build();
 
         responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 }

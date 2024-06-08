@@ -168,6 +168,8 @@ public class Player {
                 lock.wait();
                 if(!isSeeker){
                     networkTopologyModule.askForAccessToBase(beanPlayer);
+                } else {
+                    networkTopologyModule.startSeeker();
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -204,6 +206,10 @@ public class Player {
 
     public static void setIsSeeker(Boolean isSeeker) {
         Player.isSeeker = isSeeker;
+    }
+
+    public void setCoordinate(Coordinate coordinate) {
+        this.coordinate = coordinate;
     }
 
     //endregion
