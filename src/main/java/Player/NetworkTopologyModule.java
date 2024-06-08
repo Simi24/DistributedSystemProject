@@ -681,8 +681,6 @@ public class NetworkTopologyModule {
 
     public void removePlayerFromNetworkTopology(String playerId) {
         synchronized (playerCoordinateMap) {
-
-            isUpdating = true;
             Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playerCoordinateMap.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
