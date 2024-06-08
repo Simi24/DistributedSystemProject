@@ -34,6 +34,7 @@ public class Player {
         Player player = new Player();
 
         adminServerModule = new AdminServerModule();
+
         Thread inputThread = new Thread(player::handleStandardInput);
         inputThread.start();
 
@@ -49,7 +50,7 @@ public class Player {
         gRPCPlayerServer.start();
 
         //TODO: Start sending HR data to AdminServer
-        adminServerModule.sendHRData();
+        player.handleHRValues();
 
         player.handleNetworkTopologyModule();
 
@@ -58,6 +59,11 @@ public class Player {
 
         player.handleAccessToBase();
 
+    }
+
+    private void handleHRValues(){
+        adminServerModule.setPlayer(this);
+        adminServerModule.startSensor();
     }
 
     private void handleNetworkTopologyModule() throws InterruptedException {

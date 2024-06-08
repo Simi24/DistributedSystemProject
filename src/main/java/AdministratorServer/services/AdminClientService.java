@@ -23,19 +23,19 @@ public class AdminClientService {
         return Response.ok(players).build();
     }
 
-    @Path("/averageBetweenTimestamps/{playerId}/{n}")
+    @Path("/average/{playerId}/{n}")
     @GET
     @Produces({"application/json", "application/xml"})
     public Response getPlayerAverage(@PathParam("playerId") String playerId, @PathParam("n") int n) {
-        float average = HeartRateDataStore.getInstance().getAverageHeartRate(playerId, n);
+        double average = HeartRateDataStore.getInstance().getAverageHeartRate(playerId, n);
         return Response.ok(average).build();
     }
 
-    @Path("/average/{t1}/{t2}")
+    @Path("/averageBetweenTimestamps/{t1}/{t2}")
     @GET
     @Produces({"application/json", "application/xml"})
-    public Response getAverageBetweenTimestamps(@PathParam("t1") long t1, @PathParam("t2") long t2) {
-        float average = HeartRateDataStore.getInstance().calculateAverageBetweenTimestamps(t1, t2);
+    public Response getAverageBetweenTimestamps(@PathParam("t1") double t1, @PathParam("t2") double t2) {
+        double average = HeartRateDataStore.getInstance().calculateAverageBetweenTimestamps(t1, t2);
         return Response.ok(average).build();
     }
 }

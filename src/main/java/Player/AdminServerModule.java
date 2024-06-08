@@ -1,5 +1,6 @@
 package Player;
 
+import AdministratorServer.beans.ClientMesuramentAverage;
 import AdministratorServer.beans.PlayerBean;
 import Utils.GameInfo;
 import com.google.gson.Gson;
@@ -8,15 +9,25 @@ import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
+import javax.ws.rs.core.Response;
+import java.util.ArrayList;
+
 public class AdminServerModule {
     private static final String BASE_URL = "http://localhost:1337/";
     private Client client;
 
     private HRSensorModule hrSensorModule;
 
+    private Player player;
+
     public AdminServerModule() {
         this.client = Client.create();
-        hrSensorModule = new HRSensorModule();
+        hrSensorModule = new HRSensorModule(this);
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+        hrSensorModule.setPlayer(player);
     }
 
     public GameInfo addPlayer(PlayerBean p) {
@@ -47,11 +58,23 @@ public class AdminServerModule {
         }
     }
 
-    public boolean sendHRData() {
+    public void sendHRData(String playerId, long timestamp, ArrayList<Double> hrValues) {
+        ClientMesuramentAverage clientAverage = new ClientMesuramentAverage(playerId, hrValues, timestamp);
+        WebResource webResource = client.resource(BASE_URL + "heartRate/statistics");
+        String json = new Gson().toJson(clientAverage);
+
+        ClientResponse response = webResource.type("application/json")
+                .post(ClientResponse.class, json);
+
+        if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+
+        } else {
+            System.err.println("Failed to send averages: " + response.getStatus());
+        }
+    }
+
+    public void startSensor() {
         hrSensorModule.startSensor();
-        hrSensorModule.getBuffer();
-        //TODO: methods to send hr value to AdminServer
-        return true;
     }
 
 }

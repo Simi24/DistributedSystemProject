@@ -6,6 +6,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,7 +36,7 @@ public class HeartRateDataStore {
 
     //region REST methods
 
-    public synchronized boolean addClientMeasurementAverage(ClientMesuramentAverage clientAverage) {
+    public boolean addClientMeasurementAverage(ClientMesuramentAverage clientAverage) {
         try{
             clientAverages.add(clientAverage);
             return true;
@@ -45,8 +46,8 @@ public class HeartRateDataStore {
         }
     }
 
-    public synchronized float calculateAverageBetweenTimestamps(long t1, long t2) {
-        float sum = 0;
+    public synchronized double calculateAverageBetweenTimestamps(double t1, double t2) {
+        double sum = 0;
         int count = 0;
         for (ClientMesuramentAverage clientAverage : clientAverages) {
             if (clientAverage.getTimestamp() >= t1 && clientAverage.getTimestamp() <= t2) {
@@ -54,10 +55,10 @@ public class HeartRateDataStore {
                 count++;
             }
         }
-        return count > 0 ? sum / count : 0; // Avoid division by zero
+        return count > 0 ? sum / count : 0; // Return 0 if no measurements were found and avoid division by 0
     }
 
-    public synchronized float getAverageHeartRate(String playerId, int n) {
+    public synchronized double getAverageHeartRate(String playerId, int n) {
         // Filter measurements for the given playerId
         List<ClientMesuramentAverage> playerMeasurements = clientAverages.stream()
                 .filter(m -> m.getClientID().equals(playerId))
@@ -66,7 +67,7 @@ public class HeartRateDataStore {
                 .collect(Collectors.toList());
 
         // Calculate the average of these measurements
-        float sum = 0;
+        double sum = 0;
         for (ClientMesuramentAverage measurement : playerMeasurements) {
             sum += calculateAverage(measurement.getMesuraments());
         }
@@ -76,12 +77,12 @@ public class HeartRateDataStore {
     //endregion
 
     //region utils
-    private float calculateAverage(List<Float> measurements) {
+    private double calculateAverage(ArrayList<Double> measurements) {
         if (measurements.isEmpty()) {
             return 0;
         }
-        float sum = 0;
-        for (float measurement : measurements) {
+        double sum = 0;
+        for (double measurement : measurements) {
             sum += measurement;
         }
         return sum / measurements.size();

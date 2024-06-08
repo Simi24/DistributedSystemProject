@@ -1,18 +1,19 @@
 package AdministratorServer.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement
 public class ClientMesuramentAverage {
     private String clientID;
-    private List<Float> mesuraments;
+    private ArrayList<Double> mesuraments;
 
     private long timestamp;
 
-    ClientMesuramentAverage(){}
+    public ClientMesuramentAverage(){}
 
-    public ClientMesuramentAverage(String clientID, List<Float> mesuraments, long timestamp) {
+    public ClientMesuramentAverage(String clientID, ArrayList<Double> mesuraments, long timestamp) {
         this.clientID = clientID;
         this.mesuraments = mesuraments;
         this.timestamp = timestamp;
@@ -26,11 +27,11 @@ public class ClientMesuramentAverage {
         this.clientID = clientID;
     }
 
-    public List<Float> getMesuraments() {
+    public ArrayList<Double> getMesuraments() {
         return mesuraments;
     }
 
-    public void setMesuraments(List<Float> mesuraments) {
+    public void setMesuraments(ArrayList<Double> mesuraments) {
         this.mesuraments = mesuraments;
     }
 

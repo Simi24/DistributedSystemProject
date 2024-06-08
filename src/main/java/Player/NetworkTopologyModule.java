@@ -40,6 +40,8 @@ public class NetworkTopologyModule {
 
     private static int grantCounter = 0;
 
+    private boolean amIInTheBase = false;
+
     private static GameStatus gameStatus = GameStatus.WAITING;
 
     private NetworkTopologyModule() {
@@ -49,6 +51,7 @@ public class NetworkTopologyModule {
     public static final Object lock = new Object();
     public final Object updatingLock = new Object();
     private static final Object electionLock = new Object();
+    private static final Object gameStatusLock = new Object();
 
     public static synchronized NetworkTopologyModule getInstance() {
         if (instance == null) {
@@ -138,14 +141,27 @@ public class NetworkTopologyModule {
         }
 
         for (PlayerBean player : playersToStartElection) {
-            if (!Objects.equals(player.getId(), currentPlayer.getId())) {
-                // Send the current player's coordinates to each other player
-                asynchronousStartElectionCall(player, currentCoordinate);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("Thread was interrupted, failed to complete operation");
+            }
+
+            synchronized (gameStatusLock) {
+                if (gameStatus == GameStatus.ELECTION) {
+                    if (!Objects.equals(player.getId(), currentPlayer.getId())) {
+                        // Send the current player's coordinates to each other player
+                        asynchronousStartElectionCall(player, currentCoordinate);
+                    }
+                } else {
+                    break;
+                }
             }
         }
 
         synchronized (electionLock) {
-            while (electionVoteCounter < playersToStartElection.size() - 1) {
+            while (electionVoteCounter < playerCoordinateMap.size() - 1) {
                 try {
                     electionLock.wait();
                 } catch (InterruptedException e) {
@@ -157,6 +173,7 @@ public class NetworkTopologyModule {
             Player.setIsSeeker(true);
             setSeeker(NetworkTopologyModule.currentPlayer.getId());
             setGameStatus(GameStatus.BASE_ACCESS.ordinal());
+            playersToStartElection = new HashSet<>(playerCoordinateMap.keySet());
             for (PlayerBean player : playersToStartElection) {
                 if (!Objects.equals(player.getId(), currentPlayer.getId())) {
                     // Send the current player's coordinates to each other player
@@ -195,6 +212,7 @@ public class NetworkTopologyModule {
 
             System.out.println("Access granted, I can enter the base");
             System.out.println("I AM IN THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis() + " ");
+            amIInTheBase = true;
             try {
                 Thread.sleep(10000);
             } catch (InterruptedException e) {
@@ -202,6 +220,7 @@ public class NetworkTopologyModule {
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
             System.out.println("I AM LEAVING THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis());
+            amIInTheBase = false;
             setRequestTimeStamp(0);
             try {
                 giveGrantToPlayersInList();
@@ -413,7 +432,10 @@ public class NetworkTopologyModule {
             @Override
             public void onNext(ElectionServiceOuterClass.ElectionResponse electionResponse) {
                 System.out.println("Declare victory response: " + electionResponse.getMessage() + "");
-                setGameStatus(GameStatus.BASE_ACCESS.ordinal());
+                synchronized (gameStatusLock) {
+                    setGameStatus(GameStatus.BASE_ACCESS.ordinal());
+                    gameStatusLock.notify();
+                }
             }
 
             @Override
@@ -555,9 +577,8 @@ public class NetworkTopologyModule {
     //region Utils
 
     public void addNewPlayerToNetworkTopology(PlayerBean player, Coordinate newCoordinate) {
-        synchronized (playerCoordinateMap) {
-            playerCoordinateMap.put(player, newCoordinate);
-        }
+
+        playerCoordinateMap.put(player, newCoordinate);
 
         if (gameStatus == GameStatus.ELECTION) {
             try {
@@ -565,7 +586,7 @@ public class NetworkTopologyModule {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-        } else if (gameStatus == GameStatus.BASE_ACCESS && !currentPlayer.getIsSeeker()){
+        } else if (gameStatus == GameStatus.BASE_ACCESS && !currentPlayer.getIsSeeker() && !amIInTheBase) {
             playersMapWithoutSeeker.put(player, newCoordinate);
             try {
                 asynchronousAskAccessToBaseCall(player);

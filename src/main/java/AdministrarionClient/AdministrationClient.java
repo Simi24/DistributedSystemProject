@@ -88,7 +88,7 @@ public class AdministrationClient {
             while (flag) {
                 System.out.println("\nSelect a service:");
                 System.out.println("1. Get Players");
-                System.out.println("2. Get Player Average Heart Rate Between Timestamps");
+                System.out.println("2. Get Player Average Heart ");
                 System.out.println("3. Get Average Heart Rate Between Timestamps");
                 System.out.println("4. Start Game");
                 System.out.println("5. Exit");
@@ -107,7 +107,7 @@ public class AdministrationClient {
                         String playerId = scanner.next();
                         System.out.print("Enter N (number of latest heart rates to consider): ");
                         int n = scanner.nextInt();
-                        clientResponse = getRequest(client, BASE_URL + "/averageBetweenTimestamps/" + playerId + "/" + String.valueOf(n));
+                        clientResponse = getRequest(client, BASE_URL + "/average/" + playerId + "/" + String.valueOf(n));
                         responseBody = clientResponse.getEntity(String.class);
                         System.out.println(responseBody);
 
@@ -117,7 +117,7 @@ public class AdministrationClient {
                         long t1 = scanner.nextLong();
                         System.out.print("Enter End Timestamp (t2): ");
                         long t2 = scanner.nextLong();
-                        clientResponse = getRequest(client, BASE_URL + "/average/" + String.valueOf(t1) + "/" + String.valueOf(t2));
+                        clientResponse = getRequest(client, BASE_URL + "/averageBetweenTimestamps/" + String.valueOf(t1) + "/" + String.valueOf(t2));
                         responseBody = clientResponse.getEntity(String.class);
                         System.out.println(responseBody);
                         break;

@@ -14,12 +14,23 @@ public class Buffer implements Simulators.Buffer {
     }
 
     @Override
-    public void addMeasurement(Measurement m) {
+    public synchronized void addMeasurement(Measurement m) {
         measurements.add(m);
+        if(measurements.size() == 8){
+            notify();
+        }
     }
 
     @Override
-    public List<Measurement> readAllAndClean() {
+    public synchronized List<Measurement> readAllAndClean() {
+        while (measurements.size() < 8) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         List<Measurement> result = new ArrayList<>(measurements);
         measurements.clear();
         return result;
