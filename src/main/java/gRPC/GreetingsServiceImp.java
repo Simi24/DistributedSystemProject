@@ -20,7 +20,9 @@ public class GreetingsServiceImp extends GreetingServiceGrpc.GreetingServiceImpl
         PlayerBean player = new PlayerBean(receivedPlayer.getId(), receivedPlayer.getAddress(), receivedPlayer.getPortNumber());
 
         // Update the HashMap with the received player and coordinates
-        NetworkTopologyModule.getInstance().addNewPlayerToNetworkTopology(player, receivedCoordinate);
+        new Thread(() -> {
+            NetworkTopologyModule.getInstance().addNewPlayerToNetworkTopology(player, receivedCoordinate);
+        }).start();
 
         boolean isSeeker = NetworkTopologyModule.getInstance().getCurrentPlayer().getIsSeeker();
 

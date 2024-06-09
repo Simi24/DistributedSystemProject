@@ -11,7 +11,7 @@ public class TagPlayerServiceImp extends TagPlayerServiceGrpc.TagPlayerServiceIm
 
     @Override
     public void tagPlayer(TagPlayerServiceOuterClass.TagPlayerRequest request, StreamObserver<TagPlayerServiceOuterClass.TagPlayerResponse> responseObserver) {
-        System.out.println("------------ I'VE BEEN TAGGED --------------");
+        System.out.println("------------ I'VE BEEN TAGGED -------------- at timestamp: " + System.currentTimeMillis());
 
         NetworkTopologyModule networkTopologyModule = NetworkTopologyModule.getInstance();
 
@@ -21,12 +21,10 @@ public class TagPlayerServiceImp extends TagPlayerServiceGrpc.TagPlayerServiceIm
                 .setSuccess(amIInTheBase)
                 .build();
 
-        responseObserver.onNext(response);
 
-        synchronized (networkTopologyModule.updatingLock) {
-            networkTopologyModule.setiBeenTagged(true);
-            networkTopologyModule.updatingLock.notifyAll();
-        }
+        networkTopologyModule.setiBeenTagged(true);
+
+        responseObserver.onNext(response);
 
         if(!amIInTheBase) {
             try {

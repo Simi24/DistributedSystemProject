@@ -14,6 +14,7 @@ public class ExitGameServiceImp extends  ExitGameServiceGrpc.ExitGameServiceImpl
         //If player is in list of players to give grant, remove it from the list
         NetworkTopologyModule.getInstance().removePlayerFromListOfPlayerToGiveGrant(request.getId());
         NetworkTopologyModule.getInstance().removePlayerFromNetworkTopology(request.getId());
+        NetworkTopologyModule.getInstance().removePlayerFromMapPlayerWithoutSeeker(request.getId());
 
         ExitGameServiceOuterClass.ExitGameResponse response = ExitGameServiceOuterClass.ExitGameResponse
                 .newBuilder()

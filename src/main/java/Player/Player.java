@@ -49,14 +49,16 @@ public class Player {
         gRPCPlayerServer gRPCPlayerServer = new gRPCPlayerServer(Integer.parseInt(player.port));
         gRPCPlayerServer.start();
 
-        //TODO: Start sending HR data to AdminServer
+        // Start sending HR values
         player.handleHRValues();
 
+        // Start process to elect the seeker
         player.handleNetworkTopologyModule();
 
         Thread mqttThread = new Thread(player::handleMQTTConnection);
         mqttThread.start();
 
+        // Start process to access the base
         player.handleAccessToBase();
 
     }

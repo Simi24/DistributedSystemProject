@@ -27,8 +27,8 @@ public class NetworkTopologyModule {
 
     private static NetworkTopologyModule instance = null;
     private final static HashMap<PlayerBean, Coordinate> playerCoordinateMap = new HashMap<>();
-    public static List<String> playersListToGiveAccess = new ArrayList<>();
-    private static HashMap<PlayerBean, Coordinate> playersMapWithoutSeeker;
+    public static final List<String> playersListToGiveAccess = new ArrayList<>();
+    private final static HashMap<PlayerBean, Coordinate> playersMapWithoutSeeker = new HashMap<>();
 
     private static Player currentPlayer;
 
@@ -49,7 +49,6 @@ public class NetworkTopologyModule {
     private static GameStatus gameStatus = GameStatus.WAITING;
 
     private NetworkTopologyModule() {
-        playersMapWithoutSeeker = new HashMap<>();
     }
 
     public static final Object lock = new Object();
@@ -208,31 +207,32 @@ public class NetworkTopologyModule {
 
         System.out.println("PlayerCoordinateMap size after election process: " + playersMapWithoutSeeker.size());
 
-        for (PlayerBean player : playersMapWithoutSeeker.keySet()) {
-//            try {
-//                Thread.sleep(5000);
-//            } catch (InterruptedException e) {
-//                Thread.currentThread().interrupt();
-//                System.out.println("Thread was interrupted, failed to complete operation");
-//            }
-            if (!Objects.equals(player.getId(), currentPlayer.getId())) {
-                // Ask access to the base
-                    if(!iBeenTagged){
+        synchronized (playersMapWithoutSeeker) {
+            for (PlayerBean player : playersMapWithoutSeeker.keySet()) {
+//                try {
+//                    Thread.sleep(5000);
+//                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt();
+//                    System.out.println("Thread was interrupted, failed to complete operation");
+//                }
+                if (!Objects.equals(player.getId(), currentPlayer.getId())) {
+                    // Ask access to the base
+                    if (!iBeenTagged) {
                         System.out.println("Player " + currentPlayer.getId() + " is asking for access to the base at player " + player.getId() + " at timestamp " + requestTimeStamp + " ");
                         asynchronousAskAccessToBaseCall(player);
                     } else {
                         break;
                     }
+                }
             }
         }
 
         synchronized (lock) {
             while(!checkEnterCondition()){
                 try {
-                    // Aspetta che grantCounter raggiunga il valore desiderato
                     lock.wait();
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
+                    Thread.currentThread().interrupt();
                     System.out.println("Thread was interrupted, failed to complete operation");
                 }
             }
@@ -243,7 +243,7 @@ public class NetworkTopologyModule {
             try {
                 Thread.sleep(10000);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
+                Thread.currentThread().interrupt();
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
             System.out.println("---------------- I AM LEAVING THE BASE !!!!!" + " at timestamp " + System.currentTimeMillis());
@@ -252,13 +252,13 @@ public class NetworkTopologyModule {
             try {
                 giveGrantToPlayersInList();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
+                Thread.currentThread().interrupt();
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
             try {
                 leaveGame(ExitGameReason.SAVE);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Ripristina lo stato interrotto
+                Thread.currentThread().interrupt();
                 System.out.println("Thread was interrupted, failed to complete operation");
             }
         }
@@ -624,9 +624,7 @@ public class NetworkTopologyModule {
             public void onNext(TagPlayerServiceOuterClass.TagPlayerResponse tagPlayerResponse) {
                 System.out.println("Tag player response: " + tagPlayerResponse.getSuccess() + "");
                 NetworkTopologyModule.getInstance().removePlayerFromNetworkTopology(player.getId());
-                if (!tagPlayerResponse.getSuccess()) {
-                    NetworkTopologyModule.getInstance().moveTowardsClosestPlayer();
-                }
+                NetworkTopologyModule.getInstance().moveTowardsClosestPlayer();
             }
 
             @Override
@@ -651,7 +649,9 @@ public class NetworkTopologyModule {
 
     public void addNewPlayerToNetworkTopology(PlayerBean player, Coordinate newCoordinate) {
 
-        playerCoordinateMap.put(player, newCoordinate);
+        synchronized (playerCoordinateMap) {
+            playerCoordinateMap.put(player, newCoordinate);
+        }
 
         if (gameStatus == GameStatus.ELECTION) {
             try {
@@ -660,7 +660,9 @@ public class NetworkTopologyModule {
                 throw new RuntimeException(e);
             }
         } else if (gameStatus == GameStatus.BASE_ACCESS && !currentPlayer.getIsSeeker() && !amIInTheBase) {
-            playersMapWithoutSeeker.put(player, newCoordinate);
+            synchronized (playersMapWithoutSeeker) {
+                playersMapWithoutSeeker.put(player, newCoordinate);
+            }
             try {
                 asynchronousAskAccessToBaseCall(player);
             } catch (InterruptedException e) {
@@ -680,18 +682,19 @@ public class NetworkTopologyModule {
     }
 
     public void removePlayerFromNetworkTopology(String playerId) {
-        synchronized (playerCoordinateMap) {
-            Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playerCoordinateMap.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
-                if (entry.getKey().getId().equals(playerId)) {
-                    iterator.remove();
-                    break;
-                }
-            }
+        if(playerCoordinateMap.size() == 1){
+            System.out.println("---------------- GAME IS OVER ----------------");
+        } else {
 
-            if(playerCoordinateMap.size() == 1){
-                System.out.println("---------------- GAME IS OVER ----------------");
+            synchronized (playerCoordinateMap) {
+                Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playerCoordinateMap.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
+                    if (entry.getKey().getId().equals(playerId)) {
+                        iterator.remove();
+                        break;
+                    }
+                }
             }
         }
     }
@@ -708,15 +711,36 @@ public class NetworkTopologyModule {
             }
 
             isUpdating = true;
-            playersListToGiveAccess.remove(playerId);
+            synchronized (playersListToGiveAccess) {
+                playersListToGiveAccess.remove(playerId);
+            }
             isUpdating = false;
             updatingLock.notifyAll();
         }
-        playersListToGiveAccess.remove(playerId);;
+    }
+
+    public void removePlayerFromMapPlayerWithoutSeeker(String playerId) {
+        synchronized (playersMapWithoutSeeker) {
+            if(playersMapWithoutSeeker.isEmpty()){
+                return;
+            }
+
+            Iterator<Map.Entry<PlayerBean, Coordinate>> iterator = playersMapWithoutSeeker.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<PlayerBean, Coordinate> entry = iterator.next();
+                if (entry.getKey().getId().equals(playerId)) {
+                    iterator.remove();
+                    break;
+                }
+            }
+        }
     }
 
     public void incrementGrantCounter(){
         synchronized (lock) {
+            if(this.iBeenTagged){
+                return;
+            }
             grantCounter++;
             System.out.println("Grant counter: " + grantCounter);
             lock.notify();
