@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class HeartRateDataStore {
 
     @XmlElement(name="heartRate")
-    private List<ClientMesuramentAverage> clientAverages;
+    private final List<ClientMesuramentAverage> clientAverages;
 
     static HeartRateDataStore instance = null;
 
@@ -37,36 +37,39 @@ public class HeartRateDataStore {
     //region REST methods
 
     public boolean addClientMeasurementAverage(ClientMesuramentAverage clientAverage) {
-        try{
+        synchronized (clientAverages) {
             clientAverages.add(clientAverage);
-            return true;
-        }catch (Exception e){
-            System.err.println("Error during insertion: " + e.getMessage());
-            return false;
         }
+        return true;
     }
 
-    public synchronized double calculateAverageBetweenTimestamps(double t1, double t2) {
+    public double calculateAverageBetweenTimestamps(double t1, double t2) {
+        List<ClientMesuramentAverage> elementsToCompute;
+        synchronized (clientAverages) {
+            elementsToCompute = clientAverages.stream()
+                    .filter(clientAverage -> clientAverage.getTimestamp() >= t1 && clientAverage.getTimestamp() <= t2)
+                    .collect(Collectors.toList());
+        }
+
         double sum = 0;
         int count = 0;
-        for (ClientMesuramentAverage clientAverage : clientAverages) {
-            if (clientAverage.getTimestamp() >= t1 && clientAverage.getTimestamp() <= t2) {
-                sum += calculateAverage(clientAverage.getMesuraments());
-                count++;
-            }
+        for (ClientMesuramentAverage clientAverage : elementsToCompute) {
+            sum += calculateAverage(clientAverage.getMesuraments());
+            count++;
         }
-        return count > 0 ? sum / count : 0; // Return 0 if no measurements were found and avoid division by 0
+        return count > 0 ? sum / count : 0 ; // Return 0 if no measurements were found and avoid division by 0
     }
 
     public synchronized double getAverageHeartRate(String playerId, int n) {
-        // Filter measurements for the given playerId
-        List<ClientMesuramentAverage> playerMeasurements = clientAverages.stream()
-                .filter(m -> m.getClientID().equals(playerId))
-                .sorted(Comparator.comparingLong(ClientMesuramentAverage::getTimestamp).reversed())
-                .limit(n)
-                .collect(Collectors.toList());
+        List<ClientMesuramentAverage> playerMeasurements;
+        synchronized (clientAverages) {
+            playerMeasurements = clientAverages.stream()
+                    .filter(m -> m.getClientID().equals(playerId))
+                    .sorted(Comparator.comparingLong(ClientMesuramentAverage::getTimestamp).reversed())
+                    .limit(n)
+                    .collect(Collectors.toList());
+        }
 
-        // Calculate the average of these measurements
         double sum = 0;
         for (ClientMesuramentAverage measurement : playerMeasurements) {
             sum += calculateAverage(measurement.getMesuraments());
@@ -89,7 +92,9 @@ public class HeartRateDataStore {
     }
 
     public static synchronized void initWithTestData(List<ClientMesuramentAverage> testData) {
-        getInstance().clientAverages = new ArrayList<>(testData);
+        for (ClientMesuramentAverage clientAverage : testData) {
+            getInstance().addClientMeasurementAverage(clientAverage);
+        }
     }
 
     //endregion
