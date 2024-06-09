@@ -794,16 +794,12 @@ public class NetworkTopologyModule {
 
         PlayerBean playerToCheck = null;
         synchronized (playerCoordinateMap) {
-            System.out.println("Lock acquired in playerIsCloserThenCurrentPlayer");
-
             for (PlayerBean player : playerCoordinateMap.keySet()) {
                 if (player.getId().equals(playerId)) {
                     playerToCheck = player;
                     break;
                 }
             }
-
-            System.out.println("Lock released in playerIsCloserThenCurrentPlayer");
         }
 
         if (playerToCheck != null) {
@@ -811,9 +807,6 @@ public class NetworkTopologyModule {
             double playerDistance = calculateDistanceToBase(playerCoordinate);
 
             if (playerDistance == currentPlayerDistance) {
-                boolean flag = playerToCheck.getId().compareTo(currentPlayer.getId()) < 0;
-                System.out.println("We are at the same distance " + flag);
-                System.out.println("Player id: " + playerToCheck.getId() + " Current player id: " + currentPlayer.getId());
                 return playerToCheck.getId().compareTo(currentPlayer.getId()) < 0;
             }
 
